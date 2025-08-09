@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catch the Falling Balls</title>
+<style>
+    body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    
+       #gameArea {
+    position: relative;
+    width: 80%;
+    height: 100%;
+    background: black;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+    
+    .basket {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 5px;
+        background: cyan;
+        box-shadow: 0 0 10px cyan, 0 0 20px cyan;
+    }
+    .ball {
+        position: absolute;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: cyan;
+        box-shadow: 0 0 10px cyan, 0 0 20px cyan, 0 0 40px cyan;
+    }
+    #scoreBoard {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 22px;
+        color: cyan;
+        font-weight: bold;
+        text-shadow: 0 0 5px cyan, 0 0 10px cyan;
+        display: none;
+    }
+    #controlPanel {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        display: none;
+    }
+    #controlPanel label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    #controlPanel input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    #menuScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: cyan;
+        text-align: center;
+    }
+    #menuScreen h1 {
+        font-size: 48px;
+        text-shadow: 0 0 10px cyan, 0 0 20px cyan;
+        margin-bottom: 20px;
+    }
+    #startBtn {
+        padding: 15px 30px;
+        font-size: 20px;
+        background: cyan;
+        border: none;
+        cursor: pointer;
+        border-radius: 8px;
+        box-shadow: 0 0 10px cyan, 0 0 20px cyan;
+        color: black;
+        font-weight: bold;
+    }
+    #startBtn:hover {
+        background: #00cccc;
+    }
+    #exitButton {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background: red;
+        border: none;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        display: none;
+    }
+</style>
+</head>
+<body>
+<div id="gameArea">
+    <div id="menuScreen">
+        <h1>Catch the Falling Balls</h1>
+        <button id="startBtn">Start Game (Casual Play)</button>
+    </div>
+    <div id="scoreBoard">Score: 0</div>
+    <div id="controlPanel">
+        <label>Ball Color:
+            <input type="color" id="ballColor" value="#00ffff">
+        </label>
+        <label>Line Color:
+            <input type="color" id="lineColor" value="#00ffff">
+        </label>
+        <label>Background Color:
+            <input type="color" id="bgColor" value="#000000">
+        </label>
+    </div>
+    <button id="exitButton">Exit to Menu</button>
+    <div class="basket" id="basket"></div>
+</div>
+
+<script>
+    const gameArea = document.getElementById('gameArea');
+    const basket = document.getElementById('basket');
+    const scoreBoard = document.getElementById('scoreBoard');
+    const menuScreen = document.getElementById('menuScreen');
+    const controlPanel = document.getElementById('controlPanel');
+    const startBtn = document.getElementById('startBtn');
+    const exitButton = document.getElementById('exitButton');
+
+    let score = 0;
+    let basketX = gameArea.clientWidth / 2 - 50;
+    let targetX = basketX;
+    let ballColor = "#00ffff";
+    let gameRunning = false;
+    let lastTime = performance.now();
+    let animationId;
+    let activeBall = null; // only one ball at a time
+
+    document.getElementById("ballColor").addEventListener("input", e => {
+        ballColor = e.target.value;
+    });
+    document.getElementById("lineColor").addEventListener("input", e => {
+        const color = e.target.value;
+        basket.style.background = color;
+        basket.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+        scoreBoard.style.color = color;
+        scoreBoard.style.textShadow = `0 0 5px ${color}, 0 0 10px ${color}`;
+    });
+    document.getElementById("bgColor").addEventListener("input", e => {
+        gameArea.style.background = e.target.value;
+    });
+
+    document.addEventListener('keydown', e => {
+        if (!gameRunning) return;
+        if (e.key === 'ArrowLeft') targetX -= 20;
+        else if (e.key === 'ArrowRight') targetX += 20;
+        targetX = Math.max(0, Math.min(gameArea.clientWidth - 100, targetX));
+    });
+
+    function createBall() {
+        if (activeBall) return; // don't spawn if one exists
+
+        const ball = {
+            el: document.createElement('div'),
+            x: Math.random() * (gameArea.clientWidth - 30),
+            y: 0,
+            speed: 150 + Math.random() * 100
+        };
+        ball.el.classList.add('ball');
+        ball.el.style.background = ballColor;
+        ball.el.style.boxShadow = `0 0 10px ${ballColor}, 0 0 20px ${ballColor}, 0 0 40px ${ballColor}`;
+        ball.el.style.left = ball.x + 'px';
+        gameArea.appendChild(ball.el);
+        activeBall = ball;
+    }
+
+    function updateGame() {
+        if (!gameRunning) return;
+        let now = performance.now();
+        let deltaTime = (now - lastTime) / 1000;
+        lastTime = now;
+
+        basketX += (targetX - basketX) * Math.min(1, deltaTime * 10);
+        basket.style.left = basketX + 'px';
+
+        if (activeBall) {
+            activeBall.y += activeBall.speed * deltaTime;
+            activeBall.el.style.top = activeBall.y + 'px';
+
+            const ballRect = activeBall.el.getBoundingClientRect();
+            const basketRect = basket.getBoundingClientRect();
+            const gameRect = gameArea.getBoundingClientRect();
+
+            if (
+                ballRect.bottom >= basketRect.top &&
+                ballRect.left < basketRect.right &&
+                ballRect.right > basketRect.left
+            ) {
+                score++;
+                scoreBoard.textContent = 'Score: ' + score;
+                activeBall.el.remove();
+                activeBall = null;
+                setTimeout(createBall, 500); // small delay before next ball
+            }
+            if (activeBall && ballRect.top > gameRect.bottom) {
+                activeBall.el.remove();
+                activeBall = null;
+                setTimeout(createBall, 500);
+            }
+        }
+
+        animationId = requestAnimationFrame(updateGame);
+    }
+
+    startBtn.addEventListener('click', () => {
+        menuScreen.style.display = 'none';
+        scoreBoard.style.display = 'block';
+        controlPanel.style.display = 'block';
+        exitButton.style.display = 'inline-block';
+        gameRunning = true;
+        score = 0;
+        scoreBoard.textContent = "Score: 0";
+        activeBall = null;
+        lastTime = performance.now();
+        createBall(); // spawn first ball
+        animationId = requestAnimationFrame(updateGame);
+    });
+
+    exitButton.addEventListener('click', () => {
+        cancelAnimationFrame(animationId);
+        gameRunning = false;
+        if (activeBall) {
+            activeBall.el.remove();
+            activeBall = null;
+        }
+        scoreBoard.style.display = 'none';
+        controlPanel.style.display = 'none';
+        exitButton.style.display = 'none';
+        menuScreen.style.display = 'flex';
+    });
+</script>
+
+</body>
+</html>
