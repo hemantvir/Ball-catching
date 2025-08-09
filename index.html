@@ -26,12 +26,13 @@
 }
 
     
-    .basket {
+     .basket {
         position: absolute;
-        bottom: 20px;
+        bottom: 2%;
         left: 50%;
         transform: translateX(-50%);
-        width: 100px;
+        width: 15%; /* responsive */
+        max-width: 100px;
         height: 5px;
         background: cyan;
         box-shadow: 0 0 10px cyan, 0 0 20px cyan;
@@ -39,8 +40,10 @@
     .ball {
         position: absolute;
         top: 0;
-        width: 30px;
-        height: 30px;
+        width: 5vw;
+        max-width: 30px;
+        height: 5vw;
+        max-height: 30px;
         border-radius: 50%;
         background: cyan;
         box-shadow: 0 0 10px cyan, 0 0 20px cyan, 0 0 40px cyan;
@@ -119,6 +122,13 @@
         border-radius: 8px;
         cursor: pointer;
         display: none;
+    }
+     
+    #startBtn, #exitButton {
+        touch-action: manipulation;
+    }
+    #exitButton:hover {
+        background: darkred;
     }
 </style>
 </head>
@@ -264,7 +274,18 @@
         exitButton.style.display = 'none';
         menuScreen.style.display = 'flex';
     });
+    gameArea.addEventListener("touchstart", handleTouch);
+    gameArea.addEventListener("touchmove", handleTouch);
+
+    function handleTouch(e) {
+        if (!gameRunning) return;
+        const touch = e.touches[0];
+        const rect = gameArea.getBoundingClientRect();
+        const touchX = touch.clientX - rect.left;
+        targetX = Math.max(0, Math.min(gameArea.clientWidth - basket.offsetWidth, touchX - basket.offsetWidth / 2));
+    }
 </script>
 
 </body>
 </html>
+
